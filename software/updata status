@@ -11,3 +11,9 @@ MingYu Xia -- light sensor.
 Vladimir Galichyan -- mpu6050.
 
 Benjamin Attwell -- Ultrasonic sensor.
+
+/******   2025 3 4  *******/
+
+Today's Progress:
+We had an in-depth discussion about the BH1750 Ambient Light Sensor, covering its working principles, applications, and integration with our system. 
+The sensor was successfully connected and tested under different lighting conditions.
