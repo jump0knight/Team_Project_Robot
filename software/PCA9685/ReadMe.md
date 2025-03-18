@@ -20,10 +20,10 @@ SDA - GPIO2
 import leg
 import math , time
 
-print(leg.legleft1_A(160,120))
-print(leg.legleft2_A(160,120))
-print(leg.legright1_A(160,120))
-print(leg.legright2_A(160,120))
+print(leg.legleft1_A(149,160,120))
+print(leg.legleft2_A(125,160,120))
+print(leg.legright1_A(90,160,120))
+print(leg.legright2_A(135,160,120))
 ```
 
 ## Final run  it you will see this data back . So it working.
