@@ -53,63 +53,72 @@ lz = 0.00
 lz1 = 0.00
 lz2 = 0.00
 lx = 0.00
+ly = 0.00
 hu = 7.0
 hl = 7.8
+h = 0
 
-def legleft1_A(data_a, data_b):
-    s.position(leg.leg_l1.sh[0], leg.leg_l1.sh[1])  # s1
+def legleft1_A(data_y, data_a, data_b):
+    s.position(leg.leg_l1.sh[0], data_y)  # s1
     s.position(leg.leg_l1.l1[0], data_a - 8)  # l1
     s.position(leg.leg_l1.l2[0], data_b + 5)  # l2
     
+    rad_y = (data_y - 149) * (math.pi / 180)
     rad_a = (data_a - 90) * (math.pi / 180)
     rad_b = data_b * (math.pi / 180)
     rad_th = (math.pi/2 + rad_b - rad_a)
-    lz = hu * math.cos(rad_a) + hl * math.sin(rad_th)
+    lz = h * math.sin(rad_y) + (hu * math.cos(rad_a) + hl * math.sin(rad_th)) * math.cos(rad_y)
+    ly = h * math.cos(rad_y) + (hu * math.cos(rad_a) + hl * math.sin(rad_th)) * math.sin(rad_y)
     lz1 = hu * math.cos(rad_a)
     lz2 = hl * math.sin(rad_th)
     lx = - (hu * math.sin(rad_a) + hl * math.cos(rad_th))
-    return {"lx": lx, "lz": lz , "a": data_a, "b": data_b}
+    return {"lx": lx, "lz": lz , "ly": ly , "a": data_a, "b": data_b , "y": rad_y}
 
-def legleft2_A(data_a, data_b):
-    s.position(leg.leg_l2.sh[0], leg.leg_l2.sh[1])  # s1
+def legleft2_A(data_y, data_a, data_b):
+    s.position(leg.leg_l2.sh[0], data_y)  # s1
     s.position(leg.leg_l2.l1[0], data_a)  # l1
     s.position(leg.leg_l2.l2[0], data_b)  # l2
     
+    rad_y = (data_y - 125) * (math.pi / 180)
     rad_a = (data_a - 90) * (math.pi / 180)
     rad_b = data_b * (math.pi / 180)
     rad_th = (math.pi/2 + rad_b - rad_a)
-    lz = hu * math.cos(rad_a) + hl * math.sin(rad_th)
+    lz = h * math.sin(rad_y) + (hu * math.cos(rad_a) + hl * math.sin(rad_th)) * math.cos(rad_y)
+    ly = h * math.cos(rad_y) + (hu * math.cos(rad_a) + hl * math.sin(rad_th)) * math.sin(rad_y)
     lz1 = hu * math.cos(rad_a)
     lz2 = hl * math.sin(rad_th)
     lx = - (hu * math.sin(rad_a) + hl * math.cos(rad_th))
-    return {"lx": lx, "lz": lz , "a": data_a, "b": data_b}
+    return {"lx": lx, "lz": lz , "ly": ly , "a": data_a, "b": data_b , "y": rad_y}
 
-def legright1_A(data_a, data_b):
-    s.position(leg.leg_r1.sh[0], leg.leg_r1.sh[1])  # s1
+def legright1_A(data_y, data_a, data_b):
+    s.position(leg.leg_r1.sh[0], data_y)  # s1
     s.position(leg.leg_r1.l1[0], 180 - data_a)  # l1
     s.position(leg.leg_r1.l2[0], 180 - data_b)  # l2
     
+    rad_y = (data_y - 90) * (math.pi / 180)
     rad_a = (data_a - 90) * (math.pi / 180)
     rad_b = data_b * (math.pi / 180)
     rad_th = (math.pi/2 + rad_b - rad_a)
-    lz = hu * math.cos(rad_a) + hl * math.sin(rad_th)
+    lz = h * math.sin(rad_y) + (hu * math.cos(rad_a) + hl * math.sin(rad_th)) * math.cos(rad_y)
+    ly = -(h * math.cos(rad_y) + (hu * math.cos(rad_a) + hl * math.sin(rad_th)) * math.sin(rad_y))
     lz1 = hu * math.cos(rad_a)
     lz2 = hl * math.sin(rad_th)
     lx = - (hu * math.sin(rad_a) + hl * math.cos(rad_th))
-    return {"lx": lx, "lz": lz , "a": data_a, "b": data_b}
+    return {"lx": lx, "lz": lz , "ly": ly , "a": data_a, "b": data_b , "y": rad_y}
 
-def legright2_A(data_a, data_b):
-    s.position(leg.leg_r2.sh[0], leg.leg_r2.sh[1])  # s1
+def legright2_A(data_y, data_a, data_b):
+    s.position(leg.leg_r2.sh[0], data_y)  # s1
     s.position(leg.leg_r2.l1[0], 180 - data_a)  # l1
     s.position(leg.leg_r2.l2[0], 180 - data_b - 8)  # l2
     
+    rad_y = (data_y - 135) * (math.pi / 180)
     rad_a = (data_a - 90) * (math.pi / 180)
     rad_b = data_b * (math.pi / 180)
     rad_th = (math.pi/2 + rad_b - rad_a)
-    lz = hu * math.cos(rad_a) + hl * math.sin(rad_th)
+    lz = h * math.sin(rad_y) + (hu * math.cos(rad_a) + hl * math.sin(rad_th)) * math.cos(rad_y)
+    ly = -(h * math.cos(rad_y) + (hu * math.cos(rad_a) + hl * math.sin(rad_th)) * math.sin(rad_y))
     lz1 = hu * math.cos(rad_a)
     lz2 = hl * math.sin(rad_th)
     lx = - (hu * math.sin(rad_a) + hl * math.cos(rad_th))
-    return {"lx": lx, "lz": lz , "a": data_a, "b": data_b}
-
+    return {"lx": lx, "lz": lz , "ly": ly , "a": data_a, "b": data_b , "y": rad_y}
 
