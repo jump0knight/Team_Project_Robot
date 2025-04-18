@@ -1,1 +1,263 @@
+# Hasinu Ravishka
+
+import machine
+import time
+import uasyncio as asyncio
+from machine import Pin, I2C, time_pulse_us
+import leg
+import math
+
+front_distance = 0
+back_distance = 0
+
+
+uart = machine.UART(1, baudrate=115200, tx=machine.Pin(4), rx=machine.Pin(5))
+
+
+gy30_addr = 0x23
+i2c = I2C(0, scl=Pin(13), sda=Pin(12), freq=400_000)
+
+DARK_THRESHOLD = 50
+BRIGHT_THRESHOLD = 300
+stop_due_to_light = False
+
+def Gy_30_Init():
+    try:
+        i2c.writeto(gy30_addr, bytes([0x01]))  # Power ON
+        i2c.writeto(gy30_addr, bytes([0x07]))  # Reset
+        i2c.writeto(gy30_addr, bytes([0x10]))  # Continuous high-res
+        print("BH1750 Initialized")
+    except Exception as e:
+        print(f"Error initializing BH1750: {e}")
+
+def Gy_30():
+    try:
+        if gy30_addr not in i2c.scan():
+            print("BH1750 Not Found!")
+            return None
+        gy = i2c.readfrom(gy30_addr, 2)
+        if len(gy) == 2:
+            return float((gy[0] << 8) | gy[1]) / 1.2
+        else:
+            return None
+    except Exception as e:
+        print(f"I2C Read Error: {e}")
+        return None
+
+async def get_stable_light_reading(samples=5, delay=0.1, retries=3):
+    readings = []
+    for _ in range(samples):
+        for _ in range(retries):
+            lux = Gy_30()
+            if lux is not None:
+                readings.append(lux)
+                break
+            else:
+                print("Failed to get reading, retrying...")
+                await asyncio.sleep(delay)
+        await asyncio.sleep(delay)
+    return sum(readings) / len(readings) if readings else None
+
+def adjust_thresholds(lux):
+    global DARK_THRESHOLD, BRIGHT_THRESHOLD
+    if lux < 100:
+        DARK_THRESHOLD = 20
+        BRIGHT_THRESHOLD = 500
+    else:
+        DARK_THRESHOLD = 50
+        BRIGHT_THRESHOLD = 500
+    print(f"Updated thresholds - DARK_THRESHOLD: {DARK_THRESHOLD}, BRIGHT_THRESHOLD: {BRIGHT_THRESHOLD}")
+
+def robot_light_on():
+    print("Robot lights turned on.")
+  
+
+def robot_move_away_from_light():
+    print("Robot is moving away from the bright light.")
+
+
+
+sensor1 = {
+    'trig': Pin(16, Pin.OUT),
+    'echo': Pin(17, Pin.IN),
+    'name': 'Ultrasonic1'
+}
+
+sensor2 = {
+    'trig': Pin(14, Pin.OUT),
+    'echo': Pin(15, Pin.IN),
+    'name': 'Ultrasonic2'
+}
+
+
+async def read_ultrasonic(sensor):
+    trig_pin = sensor['trig']
+    echo_pin = sensor['echo']
+    name = sensor['name']
+    while True:
+        trig_pin.value(0)
+        time.sleep_us(2)
+        trig_pin.value(1)
+        time.sleep_us(10)
+        trig_pin.value(0)
+        try:
+            pulse_time = time_pulse_us(echo_pin, 1, 1000000)
+            distance = (pulse_time / 2) / 29.1
+
+            
+            global front_distance, back_distance
+            if name == 'Ultrasonic1':
+                front_distance = distance
+            elif name == 'Ultrasonic2':
+                back_distance = distance
+
+            if distance < 500:
+                print(f"{name} Distance: {distance:.2f} cm")
+        except OSError as e:
+            print(f"{name} Ultrasonic Read Error:", e)
+        await asyncio.sleep(0.5)
+
+
+current_mode = "stop"
+step_period = 1000
+base_hip = 160
+base_knee = 120
+base_shoulder = 90
+amplitude_knee = 10
+phase_offset_left1 = 0
+phase_offset_left2 = math.pi
+phase_offset_right1 = math.pi
+phase_offset_right2 = 0
+
+def move_legs(amp_l, amp_r, dir_l=True, dir_r=True):
+    current_time = time.ticks_ms()
+    cycle_time = (current_time % step_period) / step_period
+    phase = cycle_time * 2 * math.pi
+
+    sign_l = 1 if dir_l else -1
+    hip_left1 = base_hip + sign_l * amp_l * math.cos(phase + phase_offset_left1)
+    knee_left1 = base_knee + amplitude_knee * math.sin(phase + phase_offset_left1)
+    hip_left2 = base_hip + sign_l * amp_l * math.cos(phase + phase_offset_left2)
+    knee_left2 = base_knee + amplitude_knee * math.sin(phase + phase_offset_left2)
+
+    sign_r = 1 if dir_r else -1
+    hip_right1 = base_hip + sign_r * amp_r * math.cos(phase + phase_offset_right1)
+    knee_right1 = base_knee + amplitude_knee * math.sin(phase + phase_offset_right1)
+    hip_right2 = base_hip + sign_r * amp_r * math.cos(phase + phase_offset_right2)
+    knee_right2 = base_knee + amplitude_knee * math.sin(phase + phase_offset_right2)
+
+    leg.legleft1_A(base_shoulder, hip_left1, knee_left1)
+    leg.legleft2_A(base_shoulder, hip_left2, knee_left2)
+    leg.legright1_A(base_shoulder, hip_right1, knee_right1)
+    leg.legright2_A(base_shoulder, hip_right2, knee_right2)
+
+def walk_forward():
+    move_legs(10, 10, dir_l=True, dir_r=True)
+
+def walk_backward():
+    move_legs(10, 10, dir_l=False, dir_r=False)
+
+def turn_left():
+    move_legs(10, 10, dir_l=False, dir_r=True)
+
+def turn_right():
+    move_legs(10, 10, dir_l=True, dir_r=False)
+
+def standstill():
+    leg.legleft1_A(base_shoulder, base_hip, base_knee)
+    leg.legleft2_A(base_shoulder, base_hip, base_knee)
+    leg.legright1_A(base_shoulder, base_hip, base_knee)
+    leg.legright2_A(base_shoulder, base_hip, base_knee)
+
+
+async def read_uart_loop():
+    global current_mode
+    while True:
+        if uart.any():
+            data = uart.read()
+            if data and len(data) >= 12:
+                if data[0] == 0xFF and data[1] == 0xAA and data[-2] == 0xBF and data[-1] == 0xC0:
+                    mode = data[2]
+                    data_section = data[3:11]
+                    if len(data_section) == 8:
+                        print("Mode:", mode)
+                        print("Joystick data:", ', '.join(str(b) for b in data_section))
+
+                        x = data_section[2]
+                        y = data_section[1]
+
+                        if y > 200:
+                            current_mode = "forward"
+                        elif y < 100:
+                            current_mode = "backward"
+                        elif x > 200:
+                            current_mode = "left"
+                        elif x < 100:
+                            current_mode = "right"
+                        else:
+                            current_mode = "stop"
+        await asyncio.sleep(0.02)
+
+
+async def control_loop():
+    global stop_due_to_light
+    while True:
+        if stop_due_to_light:
+            standstill()
+            print(" Motion blocked due to proximity to light.")
+        else:
+            if current_mode == "forward":
+                walk_forward()
+            elif current_mode == "backward":
+                walk_backward()
+            elif current_mode == "left":
+                turn_left()
+            elif current_mode == "right":
+                turn_right()
+            else:
+                standstill()
+            print(f"[Motion] Current mode: {current_mode}")
+        await asyncio.sleep(0.05)
+
+
+
+async def light_sensor_loop():
+    global stop_due_to_light
+    await asyncio.sleep(0.05)
+    Gy_30_Init()
+
+    while True:
+        lux = await  get_stable_light_reading()
+#       
+
+        if lux is None:
+            print("Failed to read light sensor")
+            continue
+        
+        print(f"Light Intensity: {lux:.2f} lx")
+        print(f"sensor 1 value: {front_distance:.2f} lx")
+
+        if lux > 250 and front_distance <= 20:
+            print("Too close to bright light. Stopping.")
+            stop_due_to_light = True
+        else:
+            stop_due_to_light = False
+            print("run")
+
+        await asyncio.sleep(0.05)
+
+
+
+async def main():
+    asyncio.create_task(read_uart_loop())
+    asyncio.create_task(read_ultrasonic(sensor1))
+    
+    asyncio.create_task(light_sensor_loop())
+    asyncio.create_task(control_loop())
+    
+    while True:
+        await asyncio.sleep(0.5)
+
+
+asyncio.run(main())
 
